@@ -1,6 +1,6 @@
 import numpy as np
 
-def ADMM_train(X, y, C, sigma, kernel, max_iter=1000, rho=1.0, tol=1e-4):
+def ADMM_train(X, y, C, kernel, max_iter=1000, rho=1.0, tol=1e-4):
     """
     ADMM algorithm for training SVM with kernel
     
@@ -12,10 +12,8 @@ def ADMM_train(X, y, C, sigma, kernel, max_iter=1000, rho=1.0, tol=1e-4):
         Target labels (+1, -1)
     C : float
         Regularization parameter
-    sigma : float
-        Kernel parameter
     kernel : callable
-        Kernel function
+        Kernel function that takes (X1, X2) as input
     max_iter : int
         Maximum number of iterations
     rho : float
@@ -38,7 +36,7 @@ def ADMM_train(X, y, C, sigma, kernel, max_iter=1000, rho=1.0, tol=1e-4):
     u = np.zeros(n_samples)      # Scaled dual variable
     
     # Compute kernel matrix
-    K = kernel(X, X, sigma)
+    K = kernel(X, X)
     
     # ADMM iteration
     for iter in range(max_iter):
@@ -48,11 +46,13 @@ def ADMM_train(X, y, C, sigma, kernel, max_iter=1000, rho=1.0, tol=1e-4):
         alpha = np.linalg.solve(Q, p)
         
         # Update z (proximal operator)
-        v = alpha + u
+        # ... existing code ...
+        v = np.clip(alpha, -1e10, 1e10) + np.clip(u, -1e10, 1e10)  # Prevent overflow
+# ... existing code ...
         z = np.clip(v, 0, C)
         
         # Update dual variable u
-        u = u + (alpha - z)
+        u = np.clip(u + (alpha - z), -1e10, 1e10)
         
         # Check convergence
         primal_res = np.linalg.norm(alpha - z)

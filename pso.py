@@ -1,12 +1,19 @@
 import numpy as np
 from ADMM import *
-from RBFkernel import gaussian_kernel
+from RBFkernel import gaussian_kernel, sigmoid_kernel
 
-def run_admm_and_get_accuracy(X, y, C, sigma, rho, kernel=gaussian_kernel,admm_max_iter=1000):
+def run_admm_and_get_accuracy(X, y, C, sigma, rho, kernel_type='rbf', kernel_params=None, admm_max_iter=1000):
     """Helper function to run ADMM and calculate accuracy"""
-    alpha, b = ADMM_train(X, y, C, sigma, kernel, rho=rho,max_iter=admm_max_iter)
+    if kernel_type == 'rbf':
+        kernel = lambda X1, X2: gaussian_kernel(X1, X2, sigma)
+    elif kernel_type == 'sigmoid':
+        gamma = kernel_params.get('gamma', 1.0)
+        coef0 = kernel_params.get('coef0', 0.0)
+        kernel = lambda X1, X2: sigmoid_kernel(X1, X2, gamma, coef0)
+    
+    alpha, b = ADMM_train(X, y, C, kernel, rho=rho, max_iter=admm_max_iter)
     # Calculate predictions
-    K = kernel(X, X, sigma)
+    K = kernel(X, X)
     predictions = np.sign((alpha * y).dot(K) + b)
     accuracy = np.mean(predictions == y)
     return accuracy
@@ -39,9 +46,9 @@ def PSO_train(X, y, max_iter=100, n_particles=10, w=0.7, c1=1.5, c2=1.5,admm_max
     """
     # Parameter bounds
     bounds = {
-        'rho': (0.1, 5.0),
-        'sigma': (0.01, 2.0),
-        'C': (0.1, 10.0)
+        'rho': (0.01, 20.0),    # Wider range for rho
+        'sigma': (0.001, 5.0),  # Wider range for sigma
+        'C': (0.1, 30.0) 
     }
     
     # Initialize particles and velocities
